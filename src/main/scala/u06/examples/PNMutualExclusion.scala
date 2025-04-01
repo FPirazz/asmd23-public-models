@@ -23,4 +23,4 @@ object PNMutualExclusion:
 @main def mainPNMutualExclusion =
   import PNMutualExclusion.*
   // example usage
-  println(pnME.paths(MSet(N,N),7).toList.mkString("\n"))
+  println(pnME.paths(MSet(N, N),7).toList.mkString("\n"))
