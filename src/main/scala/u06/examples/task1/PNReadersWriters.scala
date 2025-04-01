@@ -23,8 +23,7 @@ object PNReadersWriters:
 
     MSet(ProcessReady) ~~> MSet(WriterReady),
     MSet(ProcessReady) ~~> MSet(ReaderReady),
-
-
+    
     // The rule below is set to guarantee mutex from Readers
     MSet(ReaderReady) ~~> MSet(ReaderRunning) ^^^ MSet(WriterRunning),
     MSet(ReaderRunning) ~~> MSet(ProcessIdle),
