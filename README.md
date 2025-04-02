@@ -35,7 +35,7 @@ def pnRW = PetriNet[Place](
 ```
 When it comes to the safety (& others) properties that are asked to be implemented and tested, they are implemented in
 the [PNSafetyProperties.scala](src/main/scala/u06/examples/task1/PNSafetyProperties.scala) class, and used in the
-previously mentioned PNReadersWriters class. The properties that are checked for are:
+previously mentioned PNReadersWriters class and also in the test class . The properties that are checked for are:
 * **Mutual Exclusion** (Mutex), in order to make sure that there are no processes that are simultaneously Reading *AND*
 Writing at the same time;
 * **Boundedness**, which check and verifies that the number of tokens in each place of the PN does not go over a certain
