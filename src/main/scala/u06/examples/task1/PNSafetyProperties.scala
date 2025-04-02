@@ -20,7 +20,6 @@ case class ReadersWritersBoundedness(maxTokens: Int) extends PNSafetyProperties[
     state.asMap.values.exists(_ > maxTokens)
 
 // Task 2
-
 case class ReadersWritersLiveness[P](waitPlace: P, goalPlace: P) extends PNSafetyProperties[MSet[P]]:
   def isViolated(marking: MSet[P]): Boolean =
     marking(waitPlace) > 0 && marking(goalPlace) == 0
