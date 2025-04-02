@@ -41,7 +41,7 @@ object PNReadersWriters:
   val visitedMarkings = scala.collection.mutable.Set[MSet[Place]]()
 
   // The value for boundedness can be change whenever we want
-  val boundedness = Boundedness(10)
+  val boundedness = ReadersWritersBoundedness(10)
 
   val mutualExclusion = ReadersWritersMutualExclusion(Place.WriterRunning, Place.ReaderRunning)
   val paths = pnRW.completePathsUpToDepthFiltered(MSet(ProcessIdle, ProcessIdle), 100, path => {

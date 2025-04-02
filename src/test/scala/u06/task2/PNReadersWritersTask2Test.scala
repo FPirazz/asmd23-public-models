@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, MINUTES}
 import scala.concurrent.{Await, Future}
-import scala.u06.examples.task1.{Boundedness, ReadersWritersMutualExclusion}
+import scala.u06.examples.task1.{ReadersWritersLiveness, ReadersWritersMutualExclusion}
 
 class PNReadersWritersTask2Test extends AnyFunSuite:
   import scala.u06.examples.task1.PNReadersWriters.*
@@ -14,7 +14,7 @@ class PNReadersWritersTask2Test extends AnyFunSuite:
     val visitedMarkings = scala.collection.mutable.Set[MSet[Place]]()
 
     // The value for boundedness can be change whenever we want
-    val boundedness = Boundedness(10)
+    val liveness = ReadersWritersLiveness(Place.ReaderReady, Place.ReaderRunning)
 
     val mutualExclusion = ReadersWritersMutualExclusion(Place.WriterRunning, Place.ReaderRunning)
     val paths = pnRW.completePathsUpToDepthFiltered(MSet(ProcessIdle, ProcessIdle), 100, path => {
@@ -29,7 +29,7 @@ class PNReadersWritersTask2Test extends AnyFunSuite:
     val violationFutures = paths.grouped(500).map { pathGroup =>
       Future {
         pathGroup.filter { path =>
-          path.exists(state => mutualExclusion.isViolated(state) || boundedness.isViolated(state))
+          path.exists(state => mutualExclusion.isViolated(state) || liveness.isViolated(state))
         }
       }
     }
