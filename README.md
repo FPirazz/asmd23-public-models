@@ -11,13 +11,13 @@ for representing safety properties? What other properties can be extracted? How 
 The tasks asked for the implementation of a Petri Net regarding the Writers & Readers implementation in the slides, which
 has been done in the class [PNReadersWriters.scala](src/main/scala/u06/examples/task1/PNReadersWriters.scala), where
 the places enumerated are:
-```
+```scala 3
 enum Place:
     case ProcessIdle, ProcessReady, ReaderReady, WriterReady, ReaderRunning, WriterRunning
 ```
 
 And the DSL-like specs for building transitions is:
-```
+```scala 3
 def pnRW = PetriNet[Place](
     MSet(ProcessIdle) ~~> MSet(ProcessReady),
 
@@ -63,14 +63,61 @@ through the liveness property which is usually present in concurrency systems.
 Once again, the property has been added to the 
 [PNSafetyProperties.scala](src/main/scala/u06/examples/task1/PNSafetyProperties.scala), amongst all the others already
 implemented in the following way:
-```
+```scala 3
 // Task 2
 case class ReadersWritersLiveness[P](waitPlace: P, goalPlace: P) extends PNSafetyProperties[MSet[P]]:
   def isViolated(marking: MSet[P]): Boolean =
     marking(waitPlace) > 0 && marking(goalPlace) == 0
 ```
-And it has been tested in the file 
+And it has been tested in the file
 [PNReadersWritersTask2Test.scala](src/test/scala/u06/task2/PNReadersWritersTask2Test.scala), where, by changing one line,
 instead of checking the boundedness property from the previous task, it now checks for the liveness on, using the same
 structure used before to test and make sure the properties have been verified in paths that are, at most, not longer
 than 100 states.
+
+## Task 3: ARTIST
+
+Create a variation/extension of PetriNet meta-model, with priorities: each transition is given a numerical priority,
+and no transition can fire if one with higher priority can fire. Show an example that your pretty new “abstraction”
+works as expected. Another interesting extension is “coloring”: tokens have a value attached, and this is read/updated
+by transitions.
+
+### Work Done:
+
+To implement the work asked by the task, I created two extensions to the normal Petri Net model, one for the priority
+system, and on for the coloring system. The first one is implemented in the file
+[PetriNetPriority.scala](src/main/scala/u06/task3/PetriNetPriority.scala), meanwhile the second one is in the file
+[ColouredPetriNet.scala](src/main/scala/u06/task3/ColouredPetriNet.scala) that extends
+[ColouredToken.scala](src/main/scala/u06/task3/ColouredToken.scala).
+
+#### **Priority System**
+
+As it can be seen in the file, there has been an extensione of the base Petri Net class, which now has a priority as per
+the Trn class. As also stated in the task, the priority is a numerical value, and when the transitions are fired, it is
+given priority to the one with the highest value, therefore letting the user design a net where certain processes have
+higher priority over others, which is done by ordering the transitions by their priority value, in descending order.
+
+This has been tested in the file [PetriNetsPriorityTest.scala](src/test/scala/u06/task3/PetriNetsPriorityTest.scala),
+where the example assumes that a PN exists wth 3 Places, and 2 transitions, where the first transition has a higher 
+priority than the other. When, as tested towards the end of the file, the transition with the higher priority is fired, 
+meanwhile the other is not.
+
+#### **Coloring System**
+
+A Colored Petri Net, or CPN, is a type of Petri net where tokens have "colors" (which can be thought of as data,
+for example a simple integer value) that can be used to represent different types of tokens. Although the data can be of
+arbitrarily complex types, places in CPN contain tokens of a single type.
+
+Firstly the case class ```ColouredToken``` is defined, which represents a token with a color and a value.
+The color is represented as a generic type, to include any type of data to be transported by the token, to let also
+implement better a PN class to interact with these values.
+
+Lastly then ```ColouredPetriNet``` is the class that extends the base Petri Net class, and it is used to create a 
+colored Petri net, which contains as usual places and transitions, but also the colored tokens.
+
+This instead has been tested in the file 
+[ColouredPetriNetsTest.scala](src/test/scala/u06/task3/ColouredPetriNetsTest.scala), and as we can see, there's
+multiple transitions that are composed of multiple places, and the tokens are colored with different values. The test
+tries to fire a transition coming from the initial place defined, with a certain value to it, which then in execution
+transits to the correct place.
+
