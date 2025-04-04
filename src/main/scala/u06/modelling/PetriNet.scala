@@ -2,6 +2,8 @@ package u06.modelling
 
 import u06.utils.MSet
 
+import scala.u06.task4.{CachedSystem, LazySystem}
+
 object PetriNet:
   // pre-conditions, effects, inhibition
   case class Trn[P](cond: MSet[P], eff: MSet[P], inh: MSet[P])
@@ -19,6 +21,11 @@ object PetriNet:
         if m disjoined inh          // check inhibition
         out <- m extract cond       // remove precondition
       yield out union eff           // add effect
+
+    def toCachedSystem: System[Marking[P]] = new CachedSystem(toSystem)
+
+    def toLazySystem: System[Marking[P]] = new LazySystem(toSystem)
+
 
   // fancy syntax to create transition rules
   extension [P](self: Marking[P])

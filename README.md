@@ -121,3 +121,11 @@ multiple transitions that are composed of multiple places, and the tokens are co
 tries to fire a transition coming from the initial place defined, with a certain value to it, which then in execution
 transits to the correct place.
 
+## Task 4: TOOLER
+
+The current API might be re-organised: can we generate/navigate all paths thanks to caching and lazy evaluation? Can 
+we use monads/effects to capture non-determinism? Can we generate paths and capture safety properties by ScalaCheck?
+
+### Work Done:
+
+The implementation of 
