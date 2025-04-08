@@ -181,3 +181,64 @@ class LazySystem[S](system: System[S]) extends System[S] {
 }
 ```
 
+# 07Lab - Stochastic modelling: uncertainty, probability and frequencies
+
+
+## Task 1: SIMULATOR
+Take the communication channel CTMC example in StochasticChannelSimulation. Compute the average time at which 
+communication is done—across n runs. Compute the relative amount of time (0% to 100%) that the system is in fail state 
+until communication is done—across n runs. Extract an API for nicely performing similar checks.
+
+### Work Done:
+
+The goal is to compute key metrics related to the system's behavior and provide a reusable API for performing similar 
+analyses on other CTMC models. Specifically, the following tasks have been accomplished:
+
+1. **Compute the Average Time to Completion**: Calculate the average time at which the communication process reaches the 
+*DONE* state across *n* simulation runs.
+2. **Compute the Relative Time in the FAIL State**: Determine the percentage of time the system spends in the *FAIL* state 
+relative to the total time until the communication process reaches the DONE state, averaged across *n* simulation runs.
+3. **Extract a Reusable API**: Develop a generic and extensible API (SimulationAnalysis) to perform similar checks on any 
+CTMC model, decoupling the analysis logic from the specific StochasticChannel example.
+<hr></hr>
+
+#### Key Components
+
+**Simulation Analysis API**
+
+The SimulationAnalysis object provides a reusable API for analyzing CTMC simulations. It includes:
+
+
+* **averageTimeToState**: Computes the average time to reach a specific state (e.g., DONE) across multiple simulation runs.
+* **relativeTimeInState**: Computes the relative time spent in a specific state (e.g., FAIL) until another state (e.g., DONE) is reached, averaged across multiple runs.
+The API is designed to be generic, allowing it to work with any CTMC model by accepting a trace generator function as input.
+
+<hr></hr>
+
+#### Implementation Details
+
+**1. Average Time to Completion**
+
+The *averageTimeToState* method calculates the average time at which the system reaches a target state (_endState_) 
+across _n_ runs. It works as follows:
+
+* For each run, the simulation trace is generated starting from the initial state.
+* The method identifies the first event where the system reaches the target state and records the time.
+* The average time is computed by summing the recorded times and dividing by the number of runs.
+
+**2. Relative Time in the _FAIL_ State**
+   
+The _relativeTimeInState_ method calculates the percentage of time the system spends in a specific state (_targetState_) 
+relative to the total time until another state (_endState_) is reached. It works as follows:
+
+* For each run, the simulation trace is generated starting from the initial state.
+* The method calculates the total time and the time spent in the target state by iterating over the trace.
+* The ratio of the target time to the total time is computed for each run, and the average ratio is returned.
+
+**3. Reusable API**
+   
+The _SimulationAnalysis_ API is implemented with modularity and reusability in mind:
+
+* A helper method, _runSimulations_, encapsulates the logic for running multiple simulations and processing their traces.
+* The analysis methods (_averageTimeToState_ and _relativeTimeInState_) are concise and focus on their specific 
+computations, delegating common tasks to the helper method.
