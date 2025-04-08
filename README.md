@@ -128,4 +128,56 @@ we use monads/effects to capture non-determinism? Can we generate paths and capt
 
 ### Work Done:
 
-The implementation of 
+The implementation of the Cache and Lazy evaluation has been done in the files 
+[CachedSystem.scala](src/main/scala/u06/task4/CachedSystem.scala) and 
+[LazySystem.scala](src/main/scala/u06/task4/LazySystem.scala), which are then tested inside the file 
+[PNExample.scala](src/main/scala/u06/task4/PNExample.scala).
+
+### `CachedSystem` Class
+
+The `CachedSystem` class is designed to add caching functionality to an existing `System`. This means that it stores the results of previous computations to avoid redundant calculations.
+
+#### Key Points:
+1. **Constructor**: It takes an existing `System` as a parameter.
+2. **Cache**: It uses a mutable map to store the results of the `next` method for different states.
+3. **Override `next` Method**: The `next` method checks if the result for a given state is already in the cache. If it is, it returns the cached result. If not, it computes the result using the underlying system, stores it in the cache, and then returns it.
+
+```scala
+package scala.u06.task4
+
+import scala.collection.mutable
+import u06.modelling.System
+
+class CachedSystem[S](system: System[S]) extends System[S] {
+  private val cache = mutable.Map[S, Set[S]]()
+
+  override def next(a: S): Set[S] = {
+    cache.getOrElseUpdate(a, system.next(a))
+  }
+}
+```
+
+### `LazySystem` Class
+
+The `LazySystem` class is designed to add lazy evaluation functionality to an existing `System`. This means that it defers the computation of transitions until they are actually needed.
+
+#### Key Points:
+1. **Constructor**: It takes an existing `System` as a parameter.
+2. **Lazy Cache**: It uses a mutable map to store functions that compute the results of the `next` method for different states.
+3. **Override `next` Method**: The `next` method checks if a function for computing the result for a given state is already in the lazy cache. If it is, it calls the function to get the result. If not, it creates a function that computes the result using the underlying system, stores this function in the lazy cache, and then calls the function to get the result.
+
+```scala
+package scala.u06.task4
+
+import u06.modelling.System
+import scala.collection.mutable
+
+class LazySystem[S](system: System[S]) extends System[S] {
+  private val lazyCache = mutable.Map[S, () => Set[S]]()
+
+  override def next(a: S): Set[S] = {
+    lazyCache.getOrElseUpdate(a, () => system.next(a))()
+  }
+}
+```
+

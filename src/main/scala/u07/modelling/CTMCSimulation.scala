@@ -1,5 +1,8 @@
 package u07.modelling
 
+import u07.examples.StochasticChannel.State
+import u07.examples.StochasticChannel.State.DONE
+
 import java.util.Random
 import u07.utils.Stochastics
 
@@ -23,4 +26,3 @@ object CTMCSimulation:
             val sumR = next.last._1
             val choice = Stochastics.draw(next)(using rnd)
             Event(t + Math.log(1 / rnd.nextDouble()) / sumR, choice)
-
