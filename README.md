@@ -242,3 +242,63 @@ The _SimulationAnalysis_ API is implemented with modularity and reusability in m
 * A helper method, _runSimulations_, encapsulates the logic for running multiple simulations and processing their traces.
 * The analysis methods (_averageTimeToState_ and _relativeTimeInState_) are concise and focus on their specific 
 computations, delegating common tasks to the helper method.
+
+## Task 2: GURU
+Check the SPN module, that incorporates the ability of CTMC modelling on top of Petri Nets, leading to Stochastic 
+Petri Nets. Code and simulate Stochastic Readers & Writers shown in previous lesson. Try to study how key 
+parameters/rate influence average time the system is in read or write state.
+
+### Work Done:
+
+**Stochastic Petri Nets (SPN)**
+
+SPNs extend Petri Nets by associating stochastic rates with transitions. These rates define the probability of a 
+transition firing over time, enabling the modeling of systems with probabilistic behavior. SPNs are particularly useful 
+for performance analysis and reliability studies.
+
+
+**Continuous-Time Markov Chains (CTMC)**
+
+SPNs are mapped to CTMCs, where:
+
+* States correspond to markings (token distributions) in the Petri Net.
+* Transitions correspond to state changes with associated rates.
+
+#### **Key Components**
+
+_**PNReadersWriters**_
+
+This module implements a Petri Net for the Readers-Writers problem, ensuring:
+
+* Mutual Exclusion: Readers and writers cannot access the shared resource simultaneously.
+
+**_StochasticReadersWriters_**
+
+This module extends the Readers-Writers problem to a _Stochastic Petri Net_ by:
+
+* Assigning stochastic rates to transitions.
+* Simulating the system using CTMCs to analyze its behavior over time.
+
+Key features include:
+
+* **Transition Rates**: Rates are defined as functions of the current marking, allowing dynamic behavior.
+* **CTMC Simulation**: The SPN is converted to a CTMC, and simulation traces are generated to study the system's evolution.
+
+**Simulation and Analysis**
+
+The project provides tools to:
+
+1. Simulate the Readers-Writers problem using both deterministic and stochastic models.
+2. Analyze the impact of transition rates on the system's performance, such as:
+   * Average time spent in the read or write state. 
+   * Frequency of state transitions. 
+3. Detect violations of mutual exclusion or boundedness in the deterministic model.
+
+
+#### **Key Insights**
+
+**Stochastic Model**
+
+* Adds probabilistic behavior to the system.
+* Allows studying the impact of transition rates on system performance.
+* Provides insights into the average time spent in different states.
