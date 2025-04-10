@@ -254,8 +254,8 @@ parameters/rate influence average time the system is in read or write state.
 
 SPNs extend Petri Nets by associating stochastic rates with transitions. These rates define the probability of a 
 transition firing over time, enabling the modeling of systems with probabilistic behavior. SPNs are particularly useful 
-for performance analysis and reliability studies.
-
+for performance analysis and reliability studies. The work done can be seen in the file 
+[StochasticReadersWriters.scala](src/main/scala/u07/task2/StochasticReadersWriters.scala).
 
 **Continuous-Time Markov Chains (CTMC)**
 
@@ -302,3 +302,5 @@ The project provides tools to:
 * Adds probabilistic behavior to the system.
 * Allows studying the impact of transition rates on system performance.
 * Provides insights into the average time spent in different states.
+
+// TODO Add information related to running several tests to gather average speed
