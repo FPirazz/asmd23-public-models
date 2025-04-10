@@ -304,3 +304,155 @@ The project provides tools to:
 * Provides insights into the average time spent in different states.
 
 // TODO Add information related to running several tests to gather average speed
+
+## Task 3: CHEMIST
+SPNs can be used to simulate dynamics of chemical reactions. Experiment with it. E.g.: search the “Brussellator” 
+chemical reaction on wikipedia: it oscillates! Try to reproduce it.
+
+### Work Done:
+
+
+
+
+#### **SPN Simulation of the Brusselator Chemical Reaction**
+
+The SPNs can be used to simulate the dynamics of chemical reactions, and in this example, we model the 
+classic `Brusselator`, a chemical oscillator, using the availabel SPN framework in the project lab. The Brusselator 
+exhibits oscillatory behavior under certain parameter regimes, and this simulation demonstrates how to capture such 
+dynamics using a stochastic approach.
+
+**Overview**
+
+The Brusselator is described by a set of chemical reactions that can be formulated as:
+
+1. **Injection:** <br> 
+∅ → X <br>
+Produces species X at a constant rate.
+
+
+2. **Degradation:** <br>
+X → ∅ <br>
+Degrades species X at a rate proportional to its current number.
+
+
+3. **Autocatalytic Reaction:** <br>
+2X + Y → 3X <br>
+Uses 2 tokens of X and 1 token of Y to produce 3 tokens of X. This reaction converts a Y into an additional X (net 
+effect), and is responsible for non-linear dynamics (oscillations).
+
+
+4. **Conversion Reaction:** <br>
+X → Y <br>
+Converts species X into species Y at a rate proportional to the available X.
+
+This simulation represents each reaction as an SPN transition. The transitions are defined by a condition (the tokens 
+or reactants required), a rate function (using mass-action kinetics), an effect (the tokens added or produced), and an 
+optional inhibition set (not used for these reactions).
+
+The SPN is then converted to a Continuous-Time Markov Chain (CTMC) which allows us to simulate the stochastic dynamics 
+of the system.
+
+Additionally, in many stochastic formulations A and B are treated as constant parameters that define the external 
+feed and conversion rate. One can usually either assume A and B are “external” (i.e. not represented as tokens) or 
+introduce tokens that remain constant. For simplicity, I included only the dynamic species X and Y in the net.
+
+#### **Code Structure**
+
+##### **Modeling the Brusselator**
+1. Defining the Species <br>
+   We define an enumeration to represent the two species in the Brusselator:
+
+```scala 3
+enum Species:
+   case X, Y
+```
+
+2. Creating the Transitions <br>
+Each reaction of the Brusselator is implemented as an SPN transition:
+
+   * **Injection of X:** <br>
+   No prerequisites, constant rate A.
+
+   * **Degradation of X:** <br>
+   Requires one token of X. The rate is proportional to the number of X tokens.
+
+   * **Autocatalytic Reaction:** <br>
+   Requires two tokens of X and one token of Y. Its rate is proportional to the combinatorial factor (choosing 2 X’s) 
+   times the number of Y tokens. After firing, it produces three tokens of X (resulting in a net addition of one X as 
+   one Y is consumed).
+   
+   * **Conversion Reaction:** <br>
+   Requires one token of X and converts it to one token of Y, with the rate proportional to the number of X tokens.
+
+A sketch of the transition definitions is as follows:
+
+```scala 3
+   // Choose your rate constants
+   val A  = 1.0    // constant injection of X
+   val k2 = 1.0    // degradation rate for X
+   val k3 = 1.0    // rate constant for the autocatalytic step
+   val B  = 3.0    // conversion rate from X to Y
+   
+   // Transition definitions:
+   
+   // 1. Injection: ∅ → X
+   val injectX = Trn[Species](
+   cond = MSet(),                
+   rate = _ => A,                
+   eff  = MSet(Species.X),       
+   inh  = MSet()                
+   )
+   
+   // 2. Degradation: X → ∅
+   val degradeX = Trn[Species](
+   cond = MSet(Species.X),      
+   rate = m => k2 * m(Species.X),
+   eff  = MSet(),                
+   inh  = MSet()
+   )
+   
+   // 3. Autocatalysis: 2X + Y → 3X
+   val autocatalysis = Trn[Species](
+   cond = MSet(Species.X, Species.X, Species.Y),
+   rate = m => k3 * (m(Species.X) * (m(Species.X) - 1) / 2.0) * m(Species.Y),
+   eff  = MSet(Species.X, Species.X, Species.X),
+   inh  = MSet()
+   )
+   
+   // 4. Conversion: X → Y
+   val convert = Trn[Species](
+   cond = MSet(Species.X),       
+   rate = m => B * m(Species.X), 
+   eff  = MSet(Species.Y),       
+   inh  = MSet()
+   )
+```
+
+
+3. Assembling the SPN and Simulation <br>
+   Combine the transitions into an SPN:
+
+```scala 3
+   val spnBrusselator = SPN[Species](
+     injectX,
+     degradeX,
+     autocatalysis,
+     convert
+   )
+```
+
+Choose an initial marking—for example, 10 tokens for species X and 5 tokens for species Y:
+
+```scala 3
+  val initialMarking = MSet.ofList(List.fill(10)(Species.X)) union MSet.ofList(List.fill(5)(Species.Y))
+```
+
+Finally, convert the SPN to a CTMC and simulate a trace:
+
+```scala 3
+    println(
+      toCTMC(spnBrusselator).newSimulationTrace(initialMarking, new java.util.Random)
+        .take(20)
+        .toList.mkString("\n")
+    )
+```

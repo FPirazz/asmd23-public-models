@@ -67,7 +67,7 @@ object SPNBrusselator:
   @main def testRun =
     import u07.modelling.CTMCSimulation.*
     
-    val initialMarking = MSet.ofList(List.fill(10)(Species.X)) union MSet.ofList(List.fill(10)(Species.Y))
+    val initialMarking = MSet.ofList(List.fill(10)(Species.X)) union MSet.ofList(List.fill(5)(Species.Y))
     
     println(
       toCTMC(spnBrusselator).newSimulationTrace(initialMarking, new java.util.Random)
