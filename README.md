@@ -311,9 +311,6 @@ chemical reaction on wikipedia: it oscillates! Try to reproduce it.
 
 ### Work Done:
 
-
-
-
 #### **SPN Simulation of the Brusselator Chemical Reaction**
 
 The SPNs can be used to simulate the dynamics of chemical reactions, and in this example, we model the 
@@ -456,3 +453,75 @@ Finally, convert the SPN to a CTMC and simulate a trace:
         .toList.mkString("\n")
     )
 ```
+
+## Task 4: RANDOM-UNIT-TESTER
+How do we unit-test with randomness? And how we test at all with randomness? Think about this in general. Try to create 
+a repeatable unit test for Statistics as in utils.StochasticSpec.
+
+### Work Done:
+
+#### Strategies for Testing Randomness
+
+### 1. Deterministic Testing with a Stubbed Random Generator
+
+One way to overcome the non-determinism of randomness is by "controlling" the `Random` number generator. By injecting a 
+custom or stubbed random generator that produces a predefined sequence of values, you can ensure that each call to a 
+method (like `Stochastics.draw`) behaves predictably. This approach makes your tests completely repeatable.
+
+#### How it Works
+
+- **Stub Implementation:** Create a custom `StubRandom` class that extends Scala's `Random` and returns values from a 
+fixed sequence.
+- **Deterministic Outcome:** For example, using a known value (e.g., 0.2), you can force the `draw` function to return 
+a specific result based on the cumulative probabilities.
+
+### 2. Statistical Testing Over Multiple Iterations
+
+For testing the fairness or the statistical properties of the randomness, you can run a large number of iterations and 
+then compare the resulting distribution against the expected probabilities. This method allows you to check that the 
+function behaves correctly on average.
+
+#### How it Works
+
+- **Large Sample Size:** Run the random function (e.g., `statistics`) for many iterations (e.g., 10,000 times).
+- **Tolerance Checks:** Use assertions with a tolerance range (e.g., using ScalaTest’s `+-`) to ensure the observed 
+frequencies are close to the expected probabilities.
+
+## Reference Code Examples
+
+### Deterministic Test Using a Stubbed Random Generator
+
+Below is an example test where a custom `StubRandom` class controls the randomness, ensuring that the `draw` method 
+yields a predictable result, which can be found also in the file 
+[StatisticalStochasticsTest.scala](src/test/scala/u07/task4/StatisticalStochasticsTest.scala).
+
+```scala
+import org.scalatest.funsuite.AnyFunSuite
+import scala.util.Random
+import u07.utils.Stochastics
+
+// A stubbed Random that returns a pre-defined sequence of doubles
+class StubRandom(seq: Seq[Double]) extends Random {
+  private val iterator = seq.iterator
+  override def nextDouble(): Double = if (iterator.hasNext) iterator.next() else 0.0
+}
+
+// Deterministic unit test using the stubbed Random
+class DeterministicStochasticsTest extends AnyFunSuite {
+
+  test("draw should return expected value with stubbed random") {
+    // For example, if we know that using 0.2 as the random value makes draw return "b"
+    val stubRandom = new StubRandom(Seq(0.2))
+    implicit val rnd: Random = stubRandom
+
+    val choices = List(1.0 -> "a", 2.0 -> "b", 3.0 -> "c")
+    val cumulativeList = Stochastics.cumulative(choices)
+    
+    // Here, 0.2 * totalSum (6.0) gives 1.2; with cumulative list:
+    // List((1.0, "a"), (3.0, "b"), (6.0, "c"))
+    // Since 1.0 < 1.2 <= 3.0, the expected draw is "b".
+    val drawn = Stochastics.draw(cumulativeList)
+    
+    assert(drawn == "b")
+  }
+}
