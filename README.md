@@ -525,3 +525,95 @@ class DeterministicStochasticsTest extends AnyFunSuite {
     assert(drawn == "b")
   }
 }
+```
+
+# 08Lab - SStochastic analysis: probabilistic/continuous-stochastic logic from model checking to simulation
+
+## Task 1: PRISM
+
+* Make the stochastic Readers & Writers Petri Net seen in lesson work: perform experiments to investigate the probability
+  that something good happens within a bound
+* Play with PRISM configuration to inspect steady-state proabilities of reading and writing (may need to play with options
+  anche choose “linear equations method”)
+
+## Work Done:
+
+### Model Checking the Stochastic Readers & Writers Problem
+
+The Readers & Writers problem is modeled as a Continuous-Time Markov Chain (CTMC) in PRISM. In this model, the states 
+and transitions represent various conditions such as:
+
+- **`p1`**: A count variable indicating available resources.
+- **`p2`, `p3`, `p4`, `p5`, `p6`, `p7`**: Variables representing different phases or actors (e.g., waiting readers, 
+- writing, active reading, etc.).
+
+The code used for PRISM is the same one as the one presented in the lab, as follows:
+```
+ctmc
+
+const int N = 20;
+
+module RW
+p1 : [0..N] init N;
+p2 : [0..N] init 0;
+p3 : [0..N] init 0;
+p4 : [0..N] init 0;
+p5 : [0..N] init 1;
+p6 : [0..N] init 0;
+p7 : [0..N] init 0;
+
+[t1] p1>0 & p2<N -> 1 : (p1'=p1-1)&(p2'=p2+1);
+[t2] p2>0 & p3<N -> 200000 : (p2'=p2-1) & (p3'=p3+1);
+[t3] p2>0 & p4<N -> 100000 : (p2'=p2-1) & (p4'=p4+1);
+[t4] p3>0 & p5>0 & p6<N -> 100000 : (p3'=p3-1) & (p6'=p6+1);
+[t5] p4>0 & p5>0 & p6=0 & p7<N -> 100000 : (p4'=p4-1) & (p5'=p5-1) & (p7'=p7+1);
+[t6] p6>0 & p1<N -> p6*1 : (p6'=p6-1) & (p1'=p1+1);
+[t7] p7>0 & p5<N & p1<N -> 0.5 : (p7'=p7-1) & (p1'=p1+1) & (p5'=p5+1);
+
+endmodule
+```
+
+Where the example query presented to test is this one:
+
+``` P=? [(true) U<=k (p6>0)]```
+
+Where the query meaning can be translated as: 
+> "What’s the probability that we eventually reach a state where someone is reading (p6 > 0) within k time units?"
+
+The model has been tested and verified and PRISM (and both function correctly), then thereafter, this considered, I tested
+the configuration of PRISM to enable steady-state probabilities (for the same model), which I did via GUI through the
+"Options" tab, then "Options" again, and once the window showed up, I choose the `Explicit` engine, which, as stated on
+the PRISM website:
+```
+The explicit engine is similar to the sparse engine, in that it can be a good option for relatively small models, 
+but will not scale up to some of the models that can be handled by the hybrid or MTBDD engines. However, unlike the 
+sparse engine, the explicit engine does not use symbolic data structures for model construction, which can be 
+beneficial in some cases. One example is models with a potentially very large state space, only a fraction of which 
+is actually reachable.
+```
+
+### Steady-state Probabilities
+
+As per requested task, I also tried to play around and test with the previously mentioned configuration in order to
+inspect Steady-State Probabilities (SSP) for the previous Reader & Writers model.
+
+The properties I tested for the SSP of the model were the following:
+* ```S=? [ p6 > 0 ]``` 
+* ```S=? [ p7 > 0 ]```
+
+Once the queries and configurations were set, I:
+
+* **Run the Analysis**: Execute your model against the queries for steady-state probability determination.
+
+* **Interpretation**:
+  * `S=? [ p6 > 0 ]`: Indicates the probability that, in the long run, the system has at least one active reader. 
+  * `S=? [ p7 > 0 ]`: Indicates the probability that, in the long run, the system has an active writer.
+
+These results help in understanding how frequently the system is reading or writing over an extended period, providing 
+insight into performance, resource utilization, or potential bottlenecks.
+
+The results, obtained through verification given of the queries, were the following:
+
+* For the first query, the result (probability) was of **0.31814921752052894**;
+* Meanwhile for the second, the result (probability) was of **0.6417386441223224**.
+
