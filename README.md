@@ -617,3 +617,17 @@ The results, obtained through verification given of the queries, were the follow
 * For the first query, the result (probability) was of **0.31814921752052894**;
 * Meanwhile for the second, the result (probability) was of **0.6417386441223224**.
 
+## Task 2: PRISM-VS-SCALA
+
+* Take the communication channel example, and perform comparison of results between PRISM and our Scala approach
+* Write Scala support for performing additional experiments and comparisons (e.g., G formulas, steady-state 
+computations)
+
+## Work Done:
+
+Both versions of the Communication Channel model, work correctly and give out the expected results, obviously the
+Scala one was already implemented in the given Lab, meanwhile the PRISM one was tested through the material given
+and/or the slides seen during class. I've found the PRISM one all in all to be faster to execute and implement, given
+obviously the nature of the application, especially considering that we can use different "engines" as stated in the
+previous task, to change the way experiments/calculations/verifications are done.
+
