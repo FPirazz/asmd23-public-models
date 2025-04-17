@@ -631,3 +631,109 @@ and/or the slides seen during class. I've found the PRISM one all in all to be f
 obviously the nature of the application, especially considering that we can use different "engines" as stated in the
 previous task, to change the way experiments/calculations/verifications are done.
 
+
+### Additional Scala Support for Experiments and Comparisons
+
+In this second part, it regards the extension of the CTMC framework already present to support additional experiments 
+and comparisons, such as **Globally (G) formulas** and **Steady-State Computations**. These features allow for advanced 
+analysis of stochastic models, similar to PRISM, but obviously implemented in Scala.
+
+This part includes:
+1. **Globally (G) Formulas**: Verifying if a property holds globally within a time bound.
+2. **Steady-State Computations**: Approximating the proportion of time spent in a given state.
+3. **Reusable API**: A modular and extensible API for performing these analyses on any CTMC model.
+
+### Key Features
+
+#### 1. Globally (G) Formulas
+The `G` formula checks if a property holds globally (i.e., at all times) within a given time bound. This is useful for 
+verifying safety properties, such as ensuring that a system never enters a failure state within a specific time frame.
+
+**Implementation**:
+- Simulates multiple traces of the CTMC.
+- For each trace, checks if the property holds for all states within the time bound.
+- Returns the proportion of traces where the property holds globally.
+
+This is done in the [CTMCAnalysis.scala](src/main/scala/u08/task2/CTMCAnalysis.scala) file.
+
+#### 2. Steady-State Computations
+Steady-state probabilities are approximated by running long simulations and observing the proportion of time spent in 
+each state. This is useful for analyzing the long-term behavior of a system.
+
+**Implementation**:
+- Simulates multiple traces of the CTMC.
+- For each trace, calculates the total time spent in the target state as a proportion of the total simulation time.
+- Averages the results across all runs.
+
+Again, this is implemented in the [CTMCAnalysis.scala](src/main/scala/u08/task2/CTMCAnalysis.scala) file.
+
+#### 3. Reusable API
+The API is designed to be generic and reusable, allowing it to work with any CTMC model. It provides methods for 
+performing the above analyses and can be easily extended for additional experiments.
+
+### Code Structure
+
+#### `CTMCAnalysis.scala`
+This file contains the core implementation of the new features. It defines extension methods for the `CTMC` trait to 
+support globally formulas and steady-state computations.
+
+##### Key Methods:
+- **`globally`**: Computes the probability that a property holds globally within a time bound.
+- **`steadyState`**: Computes the steady-state probability of a given state.
+
+#### `CTMCNewFeaturesTest.scala`
+This file demonstrates how to use the new features with an example CTMC model. It includes tests for:
+- Checking if a system avoids a failure state globally within a time bound.
+- Calculating the steady-state probability of a specific state.
+
+#### Example Usage
+The following example demonstrates how to use the new features with a stochastic communication channel model:
+
+```scala
+val ctmc = StochasticChannel.stocChannel
+
+// G formula: Check if the system is never in the FAIL state within 10 time units
+val gResult = ctmc.globally(
+  runs = 1000,
+  prop = _ != StochasticChannel.State.FAIL,
+  s0 = StochasticChannel.State.IDLE,
+  timeBound = 10.0
+)
+println(s"Probability of globally avoiding FAIL: $gResult")
+
+// Steady-state computation: Proportion of time spent in the DONE state
+val steadyStateResult = ctmc.steadyState(
+  runs = 1000,
+  s0 = StochasticChannel.State.IDLE,
+  targetState = StochasticChannel.State.DONE,
+  totalTime = 1000.0
+)
+println(s"Steady-state probability of DONE: $steadyStateResult")
+```
+
+### How It Works
+
+#### Globally (G) Formula
+
+1. Simulate multiple traces of the CTMC starting from the initial state.
+2. For each trace, iterate through the events and check if the property holds for all states within the time bound.
+3. Count the number of traces where the property holds globally and divide by the total number of runs.
+
+#### Steady-State Computation
+
+1. Simulate multiple traces of the CTMC starting from the initial state.
+2. For each trace, calculate the total time spent in the target state and the total simulation time.
+3. Compute the ratio of the target time to the total time for each trace.
+4. Average the ratios across all runs.
+
+### Results
+
+#### Example Results
+
+Using the stochastic communication channel model:
+
+
+* Globally Formula: The probability of avoiding the `FAIL` state globally within 10 time units was approximately `0.69`.
+* Steady-State Computation: The steady-state probability of being in the `DONE` state was approximately `0.99`.
+
+These results demonstrate the effectiveness of the new features in analyzing CTMC models.
