@@ -737,3 +737,92 @@ Using the stochastic communication channel model:
 * Steady-State Computation: The steady-state probability of being in the `DONE` state was approximately `0.99`.
 
 These results demonstrate the effectiveness of the new features in analyzing CTMC models.
+
+## Task 3: LARGE-SCALE-DESIGN
+
+* Get acquainted with the simulations and the code for DAP and DAPGossip
+* Implement and simulate a system where gossip-like broadcasts are used to send a message and get a reply from a node
+* Can you perform a statistical experiment to estimate time of reply?
+
+## Work Done:
+
+
+## Overview
+
+This task focuses on the analysis of Distributed Asynchronous Petri Nets (DAPs) and their extensions to model stochastic
+systems. The work includes creating a gossip-based request-reply system, performing statistical experiments, and 
+analyzing the results using Continuous-Time Markov Chains (CTMCs).
+
+---
+
+### Implementation 1: Gossip-Based Request-Reply System
+
+#### **Objective**
+Implement and simulate a system where gossip-like broadcasts are used to send a message and receive a reply from a node.
+
+#### **Implementation**
+1. **Modeling the System**:
+    - The system is modeled using a DAP with three states: `REQUEST`, `REPLY`, and `IDLE`.
+    - Rules define the transitions between these states:
+        - `REQUEST` → `REPLY`
+        - `REPLY` → `IDLE`
+
+2. **Simulation**:
+    - The DAP is converted into a CTMC for stochastic simulation.
+    - A grid-based network is used to represent the nodes.
+
+3. **Code**:
+   The implementation is in the file `src/main/scala/u08/task3/GossipRequestReply.scala`, or 
+[here](src/main/scala/u08/task3/GossipRequestReply.scala).
+
+---
+
+### Task 2: Statistical Experiment to Estimate Reply Time
+
+#### **Objective**
+Perform a statistical experiment to estimate the average time it takes to receive a reply in the gossip-based system.
+
+#### **Implementation**
+1. **Experiment Setup**:
+    - Simulate the system multiple times (e.g., 1000 runs).
+    - For each simulation, record the time it takes for the system to transition from `REQUEST` to `IDLE`.
+
+2. **Statistical Analysis**:
+    - Compute the average time across all runs.
+    - Handle edge cases where no reply is received by assigning `Double.PositiveInfinity`.
+
+3. **Code**:
+   The experiment is implemented in the file `src/main/scala/u08/task3/StatisticalExperiment.scala`, or 
+[here](src/main/scala/u08/task3/StatisticalExperiment.scala).
+
+4. **Key Method**:
+    - `estimateReplyTime(runs: Int): Double`: Simulates the system and calculates the average reply time.
+
+---
+
+### Task 3: Fixes and Enhancements
+
+#### **Challenges Addressed**
+1. **Type Inference Issues**:
+    - Fixed the issue where the compiler treated `state` as `Any` by explicitly typing it as `State[ID, Place]`.
+    
+2. **Pattern Matching Errors**:
+    - Adjusted the pattern matching to use the `Event` case class instead of tuples.
+
+3. **MSet Compatibility**:
+    - Resolved the issue with `exists` by converting `MSet` to a list using `asList`.
+
+#### **Key Fixes**
+- Updated the `takeWhile` clause to:
+  ```scala
+  case Event(_, state: State[ID, Place]) =>
+    !state.tokens.asList.exists(_.p == Place.IDLE)
+  ```
+
+---
+
+### Task 4: Insights and Results
+
+#### Simulation Results
+* The system successfully transitions from `REQUEST` to `IDLE` in all valid runs.
+* The average reply time is computed and printed in the runExperiment method, around `1 second` given the default set-up.
