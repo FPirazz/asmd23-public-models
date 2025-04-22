@@ -826,3 +826,100 @@ Perform a statistical experiment to estimate the average time it takes to receiv
 #### Simulation Results
 * The system successfully transitions from `REQUEST` to `IDLE` in all valid runs.
 * The average reply time is computed and printed in the runExperiment method, around `1 second` given the default set-up.
+
+
+
+# 09Lab - Reinforcement Learning: from MDP to RL and Q-Learning, Deep Q-Learning, and MARL
+
+## Task 1: BASIC-Q-LEARNING
+
+* Get acquainted with the basic tool of Q-learning, focussing on examples/TryQLearningMatrix
+* check how variation of key parameters (epsilon, gamma, alpha, episode length) affects learning
+* check how learning gets more difficult as the grid size increases
+
+## Work Done:
+
+After checking that the basic example given inside 
+[TryQLearningMatrix.scala](src/main/scala/u09/examples/TryQLearningMatrix.scala) works, I started to observer and
+experiment with the parameters given, and how they affect the learning process of the Q-learning algorithm.
+As per task, I experimented with the **epsilon**, **gamma**, **alpha** and **episode length** parameters.
+
+* ### Epsilon:
+The **epsilon** parameter controls the exploration-exploitation trade-off in the Q-learning algorithm. A higher epsilon 
+value means exploration is encouraged, which is useful in the early stage of learning. A lower epsilon value means the 
+agent favors exploitation of the learned policy. 
+
+Here below we can see some of the experimentation done with the parameter, where initially I just used the base example
+given and modified the parameter (Below side by side are outputs where epsilon was firstly = 0.3, as per default, 
+and then = 0.9):
+
+| ![epsilon1.png](READMEimages/epsilon/epsilon1.png) | ![epsilon2.png](READMEimages/epsilon/epsilon2.png) |
+|-----------------------------------------------|-----------------------------------------------------|
+
+As we can see, the results are the same, this maninly comes from the fact that the grid to explore is very small, as it
+is of size 5x5, and, as a matter of fact, by just increasing the size to a 10x10, we can already see the effects of the
+parameter below (re-using the same epsilon values as before):
+
+|![epsilon3.png](READMEimages/epsilon/epsilon3.png) | ![epsilon4.png](READMEimages/epsilon/epsilon4.png)  |
+|-----------------------------------------------|-----------------------------------------------------|
+
+It's very clear from the images, that the second one (with epsilon = 0.9) is much more exploratory, and the agent has 
+fully locked in, in using the first jump, the one that has a larger reward, since it has better explored the environment,
+meanwhile the second still struggles to properly navigate the environment, as it can be seen in the lower part of graph 
+of the first image.
+
+* ### Gamma:
+The **gamma** parameter determines the discount factor for future rewards. A higher gamma value means the agent 
+considers long term rewards more and prioritizes them, meanwhile is exactly the opposite for a lower gamma value,
+meaning short term rewards are prioritized.
+
+Again below, more experimentation has been done, firstly with the default setup, where in the first image the gamma
+values was set to 0.9, as per default, and in the second to 0.1:
+
+| ![gamma1.png](READMEimages/gamma/gamma1.png) | ![gamma2.png](READMEimages/gamma/gamma2.png) |
+|----------------------------------------------|----------------------------------------------|
+
+As we can see, the first image makes absolute use of the first jump, which is the one with the highest reward, meanwhile
+the second image, with gamma = 0.1, is much shorter term oriented, and when available based on position, uses the second
+jump more often, which is the one with the lower reward.
+
+Further testing has been done with a larger grid, with the same gamma values per image, and also with the second jump 
+moved further from the first, more precisely to the coordinate (6, 0), where the destination coordinates are (6, 7), to 
+further illustrate the previously explained point, and the results are as follows:
+
+| ![gamma3.png](READMEimages/gamma/gamma3.png)| ![gamma4.png](READMEimages/gamma/gamma4.png) |
+|----------------------------------------------|----------------------------------------------|
+
+Once again, the previously stated observations can also be seen here.
+
+* ### Alpha:
+The **alpha** parameter determines the learning rate of the Q-learning algorithm. A higher alpha value means that 
+faster updates to the Q-values are allowed, but it may lead to instability, meanwhile lower values result in slower
+learning but more stable convergence.
+
+Once again, the experiments below show the results of the alpha parameter, where in the first image the alpha value was 
+set to 0.2, and then to 0.9, to show the convergence difference:
+
+| ![alpha1.png](READMEimages/alpha/alpha1.png) | ![alpha2.png](READMEimages/alpha/alpha2.png) |
+|----------------------------------------------|----------------------------------------------|
+
+In the 5x5 grid, the difference is not noticeable unfortunately, but in the 10x10 grid, as shown below, the difference 
+is more apparent, where, once again, the first image has alpha = 0.2, and the second one has alpha = 0.9, and the second
+jump as been moved to the position (6, 0), landing in (6, 7) as before:
+
+| ![alpha3.png](READMEimages/alpha/alpha3.png) | ![alpha4.png](READMEimages/alpha/alpha4.png) |
+|----------------------------------------------|----------------------------------------------|
+
+As we can see in the first image, the agent hasn't really recognized the second jump, because of the slow convergence, 
+meanwhile in the second, having faster updates, the agent takes more advantage of the second jump in (6 ,0).
+
+* ### Episode Length:
+The **episode length** parameter determines the maximum number of steps allowed in each episode. A longer episode means
+the agent is allowed to explore more of the environment, while a shorter episode may lead to premature convergence and 
+limit learning in larger grids.
+
+An example, once again, can be seen below, where the first image has the default episode length of 100, and the second 
+one has been updated to 300:
+
+| ![episode1.png](READMEimages/episodeLength/length1.png) | ![episode2.png](READMEimages/episodeLength/length2.png) |
+|----------------------------------------------|--------------------------------------------------------------|
