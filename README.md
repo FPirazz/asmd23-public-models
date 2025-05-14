@@ -884,6 +884,334 @@ class DeterministicStochasticsTest extends AnyFunSuite {
 }
 ```
 
+
+
+
+
+
+
+## Task 5: PROBABILITY-LLM
+We know that LLMs/ChatGPT can arguably help in write/improve/complete/implement/reverse-engineer standard ProgLangs. 
+But is it of help in taking into account probability? Seemingly, it shorty fails. But with the proper prompt, it might 
+say something reasonable.
+
+### Work Done:
+
+Just like with previous LLMs testing task in previous labs, I tested the ChatGPT LLM to help write, improve, complete,
+implement and/or reverse-engineer standard ProgLangs to help take account of proability, and I also tested CoPilot and 
+Llama on my own out of curiosity, but not reporting the findings, since they were not as good as GPT.
+
+For all the tasks, I used, as previously stated, the available `Search` and `Reason` functionalities made available from
+OpenAI with GPT to perform all of these tasks.
+
+* **write**: I tried to make GPT generate Scala code related to having random numbers generated with a probabilistic
+distribution, with this prompt:
+```
+Hello, I pretty please need help with a task, knowing that you know ProgLangs, I need help in writing some code, in 
+Scala, related to generating random numbers based on a probabilistic distribution. So please help me with this task
+```
+
+The code generated was as follows:
+```scala 3
+import scala.util.Random
+
+object RandomFromDistribution {
+  def sample[T](values: Seq[(T, Double)]): T = {
+    val total = values.map(_._2).sum
+    val r = Random.nextDouble() * total
+    var cumulative = 0.0
+
+    for ((value, weight) <- values) {
+      cumulative += weight
+      if (r <= cumulative) return value
+    }
+
+    values.last._1 // fallback, should not happen if weights > 0
+  }
+
+  def main(args: Array[String]): Unit = {
+    val dist = Seq(("apple", 0.1), ("banana", 0.3), ("cherry", 0.6))
+    val samples = for (_ <- 1 to 10) yield sample(dist)
+    println(samples.mkString(", "))
+  }
+}
+```
+
+Which is very interesting, it clearly takes in consideration different types of distribution, not only for the "executed"
+part in the main, but also when defining the method to generate numbers, that considers also edge cases (could have
+definitely be written better).
+
+* **improve**: In order to try to improve, I used the previously generated code, into GPT again, using the following
+prompt:
+```
+Hello, I pretty please need help with a task, knowing that you know ProgLangs, I need help in improving some code, in 
+Scala, related to generating random numbers based on a probabilistic distribution. So please help me with this task, 
+considering the code I have made so far is as follows:
+"
+... Inside here the previously generated code is present
+"
+```
+
+And interestingly, the code given was very much expanded, being it as follows:
+
+```scala 3
+import scala.util.Random
+
+class CumulativeDist[T](values: Seq[(T, Double)]) {
+  // Validate
+  private val positives = values.filter(_._2 > 0)
+  require(positives.nonEmpty, "At least one weight must be positive")
+
+  // Normalize weights to sum = 1
+  private val normalized = {
+    val total = positives.map(_._2).sum
+    positives.map { case (v, w) => (v, w / total) }
+  }
+
+  // Build cumulative array
+  private val (elements, cumulative) = {
+    val cum = normalized
+      .scanLeft(("", 0.0)) { case ((_, acc), (v, w)) => (v.toString, acc + w) }
+      .tail.map(_._2)
+    (normalized.map(_._1), cum)
+  }
+
+  /** Sample in O(log n) time using binary search */
+  def sample(): T = {
+    val r = Random.nextDouble()
+    val idx = java.util.Arrays.binarySearch(cumulative.toArray, r) match {
+      case i if i >= 0 => i
+      case i           => -i - 1
+    }
+    elements(idx)
+  }
+}
+
+object RandomFromDistribution {
+  def main(args: Array[String]): Unit = {
+    val dist = new CumulativeDist(Seq("apple" -> 0.1, "banana" -> 0.3, "cherry" -> 0.6))
+    val samples = Seq.fill(10)(dist.sample())
+    println(samples.mkString(", "))
+  }
+}
+```
+
+Generally speaking, GPT added: 
+1. **Validation and normalization**, to ensure weights are non-negative and that at least 1 is postive;
+2. **Precomputing for speed**, by building a cumulative‐weights array once (O(n)) and then use binary search (O(log n)) 
+per sample, instead of O(n) scan each time;
+3. **Alias Method (O(1) sampling)**, which Preprocesses in O(n) to build alias tables, then sample in constant time.
+
+* **complete/Implement**: For completing/implementing, the only thing I did was feed GPT with the code produced in the
+write task, leaving out the `main` part, so that the LLM could complete a possible execution of the method, or even
+make it better possibly. The prompt fed was:
+```
+Hello, I pretty please need help with a task, knowing that you know ProgLangs, I need help in improving some code, in  Scala, related to completing implementing random numbers based on a probabilistic distribution. So please help me with this task, considering the code I have made so far is as follows:
+"
+import scala.util.Random
+
+object RandomFromDistribution {
+def sample\[T]\(values: Seq\[(T, Double)]): T = {
+val total = values.map(\_.\_2).sum
+val r = Random.nextDouble() \* total
+var cumulative = 0.0
+for ((value, weight) <- values) {
+cumulative += weight
+if (r <= cumulative) return value
+}
+
+values.last.\_1 // fallback, should not happen if weights > 0
+
+}
+}
+"
+```
+
+And the code that was generate was as follows:
+```scala 3
+import scala.annotation.tailrec
+import scala.util.Random
+
+class WeightedSampler[T] private (
+    values: Vector[T],
+    prefixSums: Vector[Double],
+    totalWeight: Double,
+    rng: Random
+) {
+
+  /** Draw one sample in O(log n) time via binary search on prefix sums. */
+  def sample(): T = {
+    // random number in [0, totalWeight)
+    val r = rng.nextDouble() * totalWeight
+
+    // binary search for the first prefixSum ≥ r
+    val idx = {
+      @tailrec
+      def bs(lo: Int, hi: Int): Int = {
+        if (lo >= hi) lo
+        else {
+          val mid = lo + (hi - lo) / 2
+          if (prefixSums(mid) >= r) bs(lo, mid)
+          else bs(mid + 1, hi)
+        }
+      }
+      bs(0, prefixSums.length - 1)
+    }
+
+    values(idx)
+  }
+}
+
+object WeightedSampler {
+  /** 
+   * Factory method. 
+   * @param seq  Sequence of (value, weight).
+   * @param rng  Optional RNG; defaults to scala.util.Random.
+   * @throws IllegalArgumentException if any weight is negative or all weights are zero.
+   */
+  def apply[T](seq: Seq[(T, Double)], rng: Random = new Random): WeightedSampler[T] = {
+    require(seq.nonEmpty, "Must supply at least one (value, weight).")
+    val (vs, ws) = seq.unzip
+    if (ws.exists(_ < 0.0))
+      throw new IllegalArgumentException("Negative weights are not allowed.")
+    val total = ws.sum
+    if (total <= 0.0)
+      throw new IllegalArgumentException("Sum of weights must be positive.")
+
+    // build prefix sums
+    val prefixSums = ws
+      .scanLeft(0.0)(_ + _)
+      .tail                              // drop the 0.0 at head
+      .toVector                          // Vector for fast random access
+    new WeightedSampler(vs.toVector, prefixSums, total, rng)
+  }
+}
+```
+
+On top on generating a new object to generate random numbers with, and the associated runnable object in 
+[this](src/main/scala/u07/task5/improve/Demo.scala) file, it made sure to enhance the original implementation with the 
+following characteristics:
+
+1. Validation
+   * Ensures all weights are non-negative and the total weight is positive.
+
+2. Precomputation
+   * Builds a prefix-sum array once up front so that each sample can be drawn in O(log n) time rather than O(n).
+
+3. Immutability & Thread-Safety
+   * Encapsulates state in an immutable class, allowing you to reuse one sampler from multiple threads if desired (so long as you provide a thread-safe Random or use ThreadLocalRandom).
+
+4. Custom RNG
+   * Lets you pass in your own scala.util.Random (or a Java one) for reproducibility or specific RNG behavior.
+
+* **reverseEngineer**: For the reverse-engineering I actually used the demo runnable in the complete/Implement task, as
+a basis for the LLM to try and replicate the original code as close as possible, providing also the context of the runnable
+code in the prompt, obviously. The prompt given was as follows:
+
+```
+Hello, I pretty please need help with a task, knowing that you know ProgLangs, I need help in reverse-engineering some 
+code, in Scala, related to the implementation of random numbers based on a probabilistic distribution. So please help me 
+with this task, considering the code I have available to reverse engineer is as follows:
+"
+import WeightedSampler
+
+object Demo extends App {
+import scala.util.Random
+
+// Say you have three outcomes with weights 0.1, 0.3, 0.6:
+val outcomes = Seq("apple" -> 0.1, "banana" -> 0.3, "cherry" -> 0.6)
+
+// Create a sampler (you can pass in your own Random for reproducibility)
+val sampler = WeightedSampler(outcomes, new Random(12345L))
+
+// Draw 10 samples:
+val draws = (1 to 10).map(\_ => sampler.sample())
+println(draws.mkString(", "))
+}
+"
+```
+
+The code generated is as follows:
+
+```scala 3
+import scala.util.Random
+import scala.collection.Searching._
+
+/**
+ * A sampler that draws items of type T with probability proportional
+ * to the weights provided.
+ *
+ * @param itemsWithWeights sequence of (item, weight > 0)
+ * @param rnd              a scala.util.Random instance
+ */
+class WeightedSampler[T] private (
+                                         itemsWithWeights: IndexedSeq[(T, Double)],
+                                         cumulative:  Array[Double],
+                                         totalWeight: Double,
+                                         rnd:         Random
+                                 ) {
+   /** Draw one sample in O(log n) time */
+   def sample(): T = {
+      // uniform in [0.0, totalWeight)
+      val u = rnd.nextDouble() * totalWeight
+
+      // binary search for the first index where cumulative(idx) > u
+      val idx = cumulative.search(u) match {
+         case Found(i)     => i    // exact match (rare)
+         case InsertionPoint(i) => i
+      }
+
+      itemsWithWeights(idx)._1
+   }
+}
+
+object WeightedSampler {
+   /**
+    * Factory: builds the internal cumulative array in O(n), then each
+    * sample is O(log n).
+    */
+   def apply[T](outcomes: Seq[(T, Double)], rnd: Random): WeightedSampler[T] = {
+      require(outcomes.nonEmpty, "need at least one outcome")
+      // Convert to IndexedSeq for fast random access
+      val iw = outcomes.toIndexedSeq
+      // Compute cumulative sums:
+      val cum = new Array[Double](iw.length)
+      var running = 0.0
+      var i = 0
+      while (i < iw.length) {
+         val w = iw(i)._2
+         require(w >= 0.0, s"negative weight: $w at index $i")
+         running += w
+         cum(i) = running
+         i += 1
+      }
+      require(running > 0.0, "total weight must be positive")
+      new WeightedSampler(iw, cum, running, rnd)
+   }
+}
+```
+
+Which incredibly is very similar to the Sampler produced in the complete/Implement task, obviously the semantic 
+implementation has changed, but the ideas remain the same, proving that the GPT is adequate to produce reverse-engineered
+code, provided the LLM knows the context of the code.
+
+#### Final Thoughts:
+
+All in all, GPT revealed itself to be an excellent tool to model and implement probabilistic distributions written in a
+common programming language, therefore showing itself to be useful in a multitude of situations.
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 08Lab - SStochastic analysis: probabilistic/continuous-stochastic logic from model checking to simulation
 
 ## Task 1: PRISM
