@@ -181,6 +181,363 @@ class LazySystem[S](system: System[S]) extends System[S] {
 }
 ```
 
+## Task 5: PETRINET-LLM
+
+We know that LLMs/ChatGPT can arguably help in write/improve/complete/implement/reverse-engineer standard ProgLangs. 
+But is it of help in designing Petri Nets? Does it truly “understand” the model? Does it understand our DSL by examples?
+
+### Work Done:
+
+Just like with previous LLMs testing task in previous labs, I tested the ChatGPT LLM to help write, improve, complete,
+implement and/or reverse-engineer standard ProgLangs to help design Petri Nets, and I also tested CoPilot and Llama on 
+my own out of curiosity, but not reporting the findings, since they were not as good as GPT.
+
+For all the tasks, I used, as previously stated, the available `Search` and `Reason` functionalities made available from
+OpenAI with GPT to perform all of these tasks.
+
+* **write**: I've given GPT a prompt including a couple of files so he's know how to move around the custom lab DSL of the
+Petri Nets, and the prompt was as follows:
+
+```
+Hello, I need help with a task, could you pretty pretty please help me with writing the code for an example Petri Net, with a custom Scala DSL designed to model Petri nets. The code I need to write, needs to be just about building the Net.
+The code related to how the custom Petri Net DSL was created is as follows:
+
+"
+... Inside here the PetriNet.scala file is contained
+", meanwhile the code with an example using the previously mentioned code is as follows:
+
+"
+... Inside here the SystemChannel.scala file is contained
+"
+```
+
+The result given is actually pretty good, the Net is modelled correctly, and seems to understand it. Now, the LLM also
+produced a sort of runnable example also, which unfortunately does not work, simply because it relies on code that does
+not exist, mainly the ```val reachable = pnProducerConsumer.reachableFrom(initial, 5)``` in the main. The code produced
+is as follows:
+
+```scala 3
+package scala.u06.task5.write
+
+import u06.utils.MSet
+import u06.modelling.PetriNet
+import u06.modelling.SystemAnalysis
+
+object PNProducerConsumer:
+  // Define the control places of the Petri Net
+  enum Place:
+    case Empty, Full
+
+  // Bring the enum values and DSL into scope
+  export Place.*
+  export u06.modelling.PetriNet.*
+  export u06.modelling.SystemAnalysis.*
+  export u06.utils.MSet
+
+  // DSL-like specification of a simple producer-consumer Petri Net
+  def pnProducerConsumer = PetriNet[Place](
+    // Producer: when buffer is Empty, produce a token (add Full)
+    MSet(Empty) ~~> MSet(Full),
+    // Consumer: when buffer is Full, consume a token (remove Full, return to Empty)
+    MSet(Full)  ~~> MSet(Empty)
+  ).toSystem
+
+  @main def mainPNProducerConsumer() =
+    import PNProducerConsumer.*
+    // Starting marking: buffer empty
+    val initial = MSet(Empty)
+    // Compute all reachable markings up to 5 steps
+    val reachable = pnProducerConsumer.reachableFrom(initial, 5)
+    println("Reachable markings in up to 5 steps:")
+    reachable.toList.foreach(m => println(m.toList))
+```
+
+Overall the produced code is pretty good, considering the prompt and the material given.
+
+* **improve**: GPT produced a version of the Petri Net that tries to improve on the original modelling, unfortunately,
+after several different tries, and even with prompt engineering, the code still presents semantics errors which makes
+the code non-usable out of the box, it is though a good starting point in case somebody wants to expand a feature. The
+prompt I used was the following:
+```
+Hello, I need help with a task, could you pretty pretty please help me improving an already existing Petri Net, written 
+with a custom Scala DSL designed to model Petri nets. The overall idea is to implement other operations that could be
+useful to mimicry other characteristics of the Petri Net that I haven't captured.
+The code related to how the custom Petri Net DSL was created is as follows:
+"
+... Inside here is the PetriNet.scala file
+", meanwhile the code with an example using the previously mentioned code is as follows:
+"
+... Inside here is the SystemChannel.scala file
+"
+```
+
+Meanwhile the code produced is as follows:
+
+```scala 3
+// Extended PetriNet DSL with additional analysis operations
+
+package u06.modelling
+
+import u06.utils.MSet
+import scala.collection.immutable.{Set, Map}
+
+object PetriNet {
+  // Basic types
+  case class Trn[P](cond: MSet[P], eff: MSet[P], inh: MSet[P])
+  type PetriNet[P] = Set[Trn[P]]
+  type Marking[P] = MSet[P]
+
+  // Factory
+  def apply[P](transitions: Trn[P]*): PetriNet[P] = transitions.toSet
+
+  // Core semantics
+  extension [P](pn: PetriNet[P]) {
+    def toSystem: System[Marking[P]] = m =>
+      for {
+        Trn(cond, eff, inh) <- pn
+        if m disjoined inh
+        out                 <- m extract cond
+      } yield out union eff
+
+    def toCachedSystem: System[Marking[P]] = new CachedSystem(toSystem)
+    def toLazySystem:  System[Marking[P]] = new LazySystem(toSystem)
+  }
+
+  // DSL syntax
+  extension [P](m: Marking[P]) def ~~> (eff: Marking[P]) = Trn(m, eff, MSet.empty)
+  extension [P](t: Trn[P])     def ^^^ (inh: Marking[P]) = t.copy(inh = inh)
+
+  // ###########################################
+  // New: firing semantics and reachability
+  // ###########################################
+
+  /**
+   * One-step firing: returns all successors of a given marking
+   */
+  extension [P](pn: PetriNet[P])
+    def fireOnce(m: Marking[P]): Set[Marking[P]] = 
+      toSystem(m).toSet
+
+  /**
+   * Reachability graph up to depth n
+   */
+  extension [P](pn: PetriNet[P])
+    def reachableFrom(initial: Marking[P], depth: Int): Set[Marking[P]] = {
+      def loop(current: Set[Marking[P]], visited: Set[Marking[P]], k: Int): Set[Marking[P]] =
+        if k == 0 then visited
+        else {
+          val next = current.flatMap(pn.fireOnce) -- visited
+          loop(next, visited ++ next, k - 1)
+        }
+      loop(Set(initial), Set(initial), depth)
+    }
+
+  /**
+   * Deadlock detection: has no outgoing transitions
+   */
+  extension [P](pn: PetriNet[P])
+    def isDeadlock(m: Marking[P]): Boolean = pn.fireOnce(m).isEmpty
+
+  /**
+   * All dead markings reachable within depth n
+   */
+  extension [P](pn: PetriNet[P])
+    def deadlocksFrom(initial: Marking[P], depth: Int): Set[Marking[P]] =
+      reachableFrom(initial, depth).filter(isDeadlock)
+
+  // TODO: Add invariant computation, place capacities, timed transitions, and bisimulation checks
+}
+```
+
+* **complete/implement**: For completing an already existing piece of code, I used the prompt:
+
+```
+Hello, I need help with a task, could you pretty pretty please help me complete an already basic existing implementation of a Scala Petri Net, written with a custom Scala DSL designed to model Petri nets. The overall idea is to implement the rest of the code so a Petri Net can be modeled and tested through firing
+The code related to how the basic custom Petri Net DSL was created is as follows:
+"
+object PetriNet:
+// pre-conditions, effects, inhibition
+case class Trn\[P] (cond: MSet\[P], eff: MSet\[P], inh: MSet\[P])
+type PetriNet\[P] = Set\[Trn\[P]]
+type Marking\[P] = MSet\[P]
+", meanwhile this is the code for the MSet:
+"
+... Inside here the MSet.scala file is present
+"
+```
+
+Where the main idea was to see if GPT was able to complete the rest of the Petri Net, giving the one present in the lab
+as a basis for it, considering that the code produced, was actually not that bad, and is as follows:
+```scala 3
+package scala.u06.task5.completeImplement
+
+import u06.utils.MSet
+
+object PetriNet:
+  // pre-conditions, effects, inhibition
+  case class Trn[P](cond: MSet[P], eff: MSet[P], inh: MSet[P])
+  type PetriNet[P] = Set[Trn[P]]
+  type Marking[P] = MSet[P]
+
+  /**
+   * Returns true if the transition t is enabled under marking m:
+   * - all tokens in cond are in m
+   * - no tokens in inh are in m
+   */
+  def enabled[P](net: PetriNet[P], m: Marking[P], t: Trn[P]): Boolean =
+    m.matches(t.cond) && t.inh.disjoined(m)
+
+  /**
+   * Returns all enabled transitions under marking m
+   */
+  def enabledTransitions[P](net: PetriNet[P], m: Marking[P]): Set[Trn[P]] =
+    net.filter(t => enabled(net, m, t))
+
+  /**
+   * Attempts to fire transition t on marking m:
+   * - if enabled, returns Some(newMarking)
+   * - else None
+   * Effects: newMarking = (m \ cond) \* diff cond then union eff
+   */
+  def fire[P](m: Marking[P], t: Trn[P]): Option[Marking[P]] =
+    if enabled(net = Set.empty, m = m, t = t) then
+      val removed = m.diff(t.cond)
+      val added   = removed.union(t.eff)
+      Some(added)
+    else None
+
+  /**
+   * Fires any one enabled transition nondeterministically
+   */
+  def fireOne[P](net: PetriNet[P], m: Marking[P]): Option[(Trn[P], Marking[P])] =
+    enabledTransitions(net, m).headOption.flatMap { t =>
+      fire(m, t).map(m2 => (t, m2))
+    }
+
+  /**
+   * Computes the reachable markings in at most "steps" steps
+   */
+  def reachable[P](net: PetriNet[P], m0: Marking[P], steps: Int): Set[Marking[P]] =
+    def rec(current: Set[Marking[P]], depth: Int): Set[Marking[P]] =
+      if depth == 0 then current
+      else
+        val next = for
+          m <- current
+          t <- enabledTransitions(net, m)
+          m2 <- fire(m, t)
+        yield m2
+        current ++ rec(next, depth - 1)
+    rec(Set(m0), steps)
+
+// Example usage:
+import PetriNet._
+
+@main def testPetri(): Unit =
+  // Define places as symbols
+  type Place = String
+  val p = MSet.ofList[Place](List("p1", "p2"))
+
+  // Transition t1: consumes p1, produces p2
+  val t1 = Trn(cond = MSet("p1"), eff = MSet("p2"), inh = MSet())
+  val net: PetriNet[Place] = Set(t1)
+  val initial: Marking[Place] = MSet("p1", "p1")
+
+  println(s"Enabled: ${enabledTransitions(net, initial)}")
+  fireOne(net, initial) match
+    case Some((t, m2)) => println(s"Fired $t -> $m2")
+    case None          => println("No transition enabled")
+  println(s"Reachable in 3 steps: ${reachable(net, initial, 3)}")
+
+```
+
+Not only GPT presented a functioning file from the get-go, the rest of the methods produced actually offer a very good
+implementation of what the Petri Net could have been given.
+
+* **reverse-engineer**: Finally, for reverse-engineering, I used the SystemChannel code to see if the LLM would've been
+able to implement what the Petri Net could be/have been, therefore the prompt given was as follows:
+
+```
+Hello, I need help with a task, could you pretty pretty please help me reverse-engineer an usage of a Petrin Net in 
+Scala, to produce a basic implementation of a Scala Petri Net, written with a custom Scala DSL designed to model Petri 
+nets. The overall idea is to implement the rest of the code so a Petri Net can be modeled and tested through firing, by 
+reverse-engineering the usage.
+The code related to how the custom Petri Net DSL that fires was created is as follows:
+"
+... Inside here is the SystemChannel.scala file
+"
+```
+It did take a few tries, and the only somewhat viable code that GPT could produce was as follows:
+```scala 3
+// Package for modeling systems as Petri nets
+package scala.u06.task5.reverseEngineer
+
+// Core System type
+case class System[T](
+                      transitions: Set[(T, T)]
+                    ) {
+  // Return direct successors of a given state
+  def next(from: T): Set[T] =
+    transitions.collect { case (s, t) if s == from => t }
+
+  // Normalize a state by walking until a terminal state (no outgoing transitions)
+  def normalForm(start: T): T = {
+    @annotation.tailrec
+    def loop(current: T): T =
+      next(current).headOption match {
+        case Some(nextState) => loop(nextState)
+        case None            => current
+      }
+    loop(start)
+  }
+
+  // All paths of exactly 'depth' transitions starting from 'start'
+  def paths(start: T, depth: Int): Iterable[List[T]] = {
+    def loop(current: T, steps: Int): Iterable[List[T]] =
+      if (steps == 0) Iterable(List(current))
+      else
+        next(current).flatMap { succ =>
+          loop(succ, steps - 1).map(current :: _)
+        }
+    loop(start, depth)
+  }
+
+  // All paths up to a maximum depth
+  def completePathsUpToDepth(start: T, maxDepth: Int): Iterable[List[T]] =
+    (0 to maxDepth).flatMap(paths(start, _))
+}
+
+object System {
+  // Construct a System from a variable number of transitions
+  def ofTransitions[T](trs: (T, T)*): System[T] =
+    System(trs.toSet)
+}
+
+// Analysis utilities
+object SystemAnalysis {
+  extension[T] (sys: System[T]) {
+    def next(from: T): Set[T]       = sys.next(from)
+    def normalForm(start: T): T     = sys.normalForm(start)
+    def paths(start: T, d: Int): Iterable[List[T]] = sys.paths(start, d)
+    def completePathsUpToDepth(start: T, d: Int): Iterable[List[T]] = sys.completePathsUpToDepth(start, d)
+  }
+}
+```
+
+It's not exactly as we what previously created for the lab, but it's still an interesting take on what the Petri Net
+modelling could have been.
+
+#### Final Thoughts:
+
+GPT can definitely be used to produce usable results even for custom-made DSLs, that use "external knowledge", in our
+case the fact that the LLM knows in theory what Petri Nets are, but it showed promise, with definitely hiccups, in 
+applying that knowledge to more practical applications.
+
+
+
+
+
+
+
 # 07Lab - Stochastic modelling: uncertainty, probability and frequencies
 
 
