@@ -1462,7 +1462,7 @@ Implement and simulate a system where gossip-like broadcasts are used to send a 
 
 ---
 
-### Task 2: Statistical Experiment to Estimate Reply Time
+### Implementation 2: Statistical Experiment to Estimate Reply Time
 
 #### **Objective**
 Perform a statistical experiment to estimate the average time it takes to receive a reply in the gossip-based system.
@@ -1485,7 +1485,7 @@ Perform a statistical experiment to estimate the average time it takes to receiv
 
 ---
 
-### Task 3: Fixes and Enhancements
+### Implementation 3: Fixes and Enhancements
 
 #### **Challenges Addressed**
 1. **Type Inference Issues**:
@@ -1506,11 +1506,172 @@ Perform a statistical experiment to estimate the average time it takes to receiv
 
 ---
 
-### Task 4: Insights and Results
+### Implementation 4: Insights and Results
 
 #### Simulation Results
 * The system successfully transitions from `REQUEST` to `IDLE` in all valid runs.
 * The average reply time is computed and printed in the runExperiment method, around `1 second` given the default set-up.
+
+
+
+
+## Task 4: LLM-STOCHASTIC-ANALYSIS
+PRISM is rather well known, and perhaps LLMs know it. Can LLMs understand the meaning of a stochastic property? Can they
+solve (very) simple modelchecking? Can they preview what a simulation can produce?
+
+### Work Done:
+
+Just like with previous LLMs testing task in previous labs, I tested the ChatGPT LLM to see if it could understand, and
+therefore help, regarding implementation of model checking properties and simulations.
+
+For all the tasks, I used, as previously stated, the available `Search` and `Reason` functionalities made available from
+OpenAI with GPT to perform all of these tasks.
+
+I initially prompted GPT to understand if it did know about what model checking is, how to enforce it, what models
+can be represented, and if it knew about PRISM and it's syntax. This was all done through this initial prompt:
+```
+Hello, I pretty please need help with a task, knowing that you know PRISM, what is modelchecking, and the meaning of 
+stochastic properties in general, I need help in understanding basic properties, that could be done using PRISM, through
+an example would be ideal please
+```
+
+GPT managed to produce very valid information, through the `Search` function, therefore reporting firstly a summary of 
+key concepts when it comes to model checking, then going more in depth explaining:
+1. What is Model Checking;
+2. The Stochastic Models and Properti Logics, so:
+   * DTMCs;
+   * CTMCs;
+   * PCTL and CSL;
+   * Reward (Cost) Properties;
+3. Then explained what PRISM is;
+4. Explained an example of a DTMC model through code:
+
+Firstly it explained the model, which was the Knuth–Yao’s algorithm, that uses coin flips to simualte a fair 6-sided
+die. GPT actually produced an example of the model, as shown below:
+```
+dtmc
+
+module die
+  s : [0..7] init 0;    // step
+  d : [0..6] init 0;    // die value
+
+  [] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+  [] s=1 -> 0.5:(s'=3) + 0.5:(s'=4);
+  [] s=2 -> 0.5:(s'=5) + 0.5:(s'=6);
+  [] s=3 -> 0.5:(s'=1) + 0.5:(s'=7)&(d'=1);
+  [] s=4 -> 0.5:(s'=7)&(d'=2) + 0.5:(s'=7)&(d'=3);
+  [] s=5 -> 0.5:(s'=7)&(d'=4) + 0.5:(s'=7)&(d'=5);
+  [] s=6 -> 0.5:(s'=2) + 0.5:(s'=7)&(d'=6);
+  [] s=7 -> (s'=7);
+endmodule
+```
+And testing it shows that it actually works.
+
+After that, GPT also showed how to reach the Probabilistic Reachability Property, by querying the model through this
+query:
+```
+const int x;
+P=? [ F (s=7 & d=x) ]
+```
+
+Which again, works flawless, and also showing the expected yield, which I quote from GPT, is: "yields the expected 
+cumulative reward (i.e., number of steps) to reach s=7. PRISM computes this as 11/3 ≈ 3.67", which is right.
+
+As a final test I fed GPT one of the previously produce PRISM models and queries, to see if it was able to understand it,
+and try to guess the result of the query. The prompt given to GPT, following the previous one given in the same 
+conversation, was:
+```
+This is very very good and useful, thank you! This considered then, would you be able to identify what the following 
+PRISM model does:
+"
+ctmc
+
+const int N = 20;
+
+module RW
+p1 : [0..N] init N;
+p2 : [0..N] init 0;
+p3 : [0..N] init 0;
+p4 : [0..N] init 0;
+p5 : [0..N] init 1;
+p6 : [0..N] init 0;
+p7 : [0..N] init 0;
+
+[t1] p1>0 & p2<N -> 1 : (p1'=p1-1)&(p2'=p2+1);
+[t2] p2>0 & p3<N -> 200000 : (p2'=p2-1) & (p3'=p3+1);
+[t3] p2>0 & p4<N -> 100000 : (p2'=p2-1) & (p4'=p4+1);
+[t4] p3>0 & p5>0 & p6<N -> 100000 : (p3'=p3-1) & (p6'=p6+1);
+[t5] p4>0 & p5>0 & p6=0 & p7<N -> 100000 : (p4'=p4-1) & (p5'=p5-1) & (p7'=p7+1);
+[t6] p6>0 & p1<N -> p6*1 : (p6'=p6-1) & (p1'=p1+1);
+[t7] p7>0 & p5<N & p1<N -> 0.5 : (p7'=p7-1) & (p1'=p1+1) & (p5'=p5+1);
+
+endmodule
+", and what the following query test for, and the yieldid probability result:
+"
+S=? [ p6 > 0 ]
+"
+```
+
+GPT didn't explicitly say this was a Producer & Consumer model, but nonetheless it managed to correctly interpret what
+each state and transition was supposed to do, as shown below in its response:
+```
+1. Type of model
+   * This is a continuous‐time Markov chain (CTMC) specified in PRISM’s modeling language. In CTMCs, each enabled 
+   transition with rate 𝑟 fires after an exponentially distributed delay of parameter 𝑟 moving the system to a successor
+   state.
+
+2. Variables 𝑝1-𝑝7
+   * You have seven integer state variables 𝑝𝑖 ∈ [0..𝑁]. Initially:
+   (p1,p2,p3,p4,p5,p6,p7) = (N,0,0,0,1,0,0)
+
+3. Transitions [𝑡1]...[𝑡7]
+   * [𝑡1]...[𝑡3]: tokens move from place 1→2 (rate 1), then split to 3 or 4 at high rates (200 k, 100 k).
+   * [𝑡4], [𝑡5]: from 3 or 4 into places 6 or 7, conditional on availability of a “service token” in 𝑝5
+   * [𝑡6]: tokens in 𝑝6 return to 𝑝1 (rate proportional to 𝑝6).
+   * [𝑡7]: tokens in 𝑝7 also return to 𝑝1 and regenerate the service token in 𝑝5 (rate 0.5).
+
+Overall, it models a reentrant manufacturing/repair loop:
+   * Raw items (𝑝1) enter processing (𝑝2→𝑝3 or 𝑝4),
+   * Completed items queue in 𝑝6 or require rework in 𝑝7,
+   * Completed items come back to start, and reworked items both return and free up the “service token” 𝑝5.
+```
+
+Which, as said previously, is a pretty good explanation on what the model is, followed by also an interpretation of the
+given query, which was as follows:
+```
+Query Explanation
+
+S=? [ p6 > 0 ]
+
+* Operator “S”
+   * In PRISM, S is the steady‐state operator, which computes the long‐run (equilibrium) probability that a 
+   state‐formula holds .
+
+* Property [ p6 > 0 ]
+   * This Boolean formula is true in exactly those CTMC states where the counter 𝑝6 is strictly positive, i.e. there is 
+   at least one completed item waiting in place 6.
+
+* Quantitative query
+   * Writing S=? [ p6 > 0 ] asks PRISM:
+   “In steady‐state, what is the probability that 𝑝6 > 0?"
+```
+
+Which, again, is a pretty good interpretation of what the query is supposed to represent, going even as far as explaining
+how to obtain the numerical probability of the query, and what the number could be, firstly by explaining how to calculate
+the Real Number, through the equation below:
+
+![img.png](imagesREADME/img.png)
+
+Estimating the result to be `0.2758421`, which is very, very close to the real one obtained, which is 
+`0.31814921752052894`, that, considered the nature of the LLM, is extremely impressive to obtain.
+
+#### Final thoughts:
+
+GPT has shown extremely proficient capabilities in understanding what Model Checking is, what its properties are, how
+to test theoretically, and even more how to test them in a practical software environment like PRISM. I suspect of all 
+this has been doable thanks to the new `Search` and `Reason` capabilities given to the LLM, which, respectively, lets 
+the LLM search on the web for the topic/s given in the prompt, and the second one gives more reasoning time to the LLM
+in general to produce a better answer.
 
 
 
